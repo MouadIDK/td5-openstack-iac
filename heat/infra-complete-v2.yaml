@@ -2,15 +2,17 @@ heat_template_version: 2018-08-31
 
 description: >
   Infrastructure openstack complète: réseau privé, sous-réseau, routeur,
-  instance et volume attaché (TD5) .
+  instance et volume attaché (TD5).
 
 parameters:
   image:
     type: string
     default: cirros-0.6.3-x86_64-disk
+
   flavor:
     type: string
     default: m1.nano
+
   external_network:
     type: string
     default: public
@@ -81,6 +83,17 @@ resources:
       security_groups:
         - { get_resource: sg_ssh }
 
+  mon_instance_3:
+    type: OS::Nova::Server
+    properties:
+      name: instance-heat-complete-3
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      networks:
+        - network: { get_resource: mon_reseau }
+      security_groups:
+        - { get_resource: sg_ssh }
+
   attachement:
     type: OS::Cinder::VolumeAttachment
     properties:
@@ -91,6 +104,7 @@ outputs:
   instance_ip:
     description: IP privée de l'instance
     value: { get_attr: [mon_instance, first_address] }
+
   instance_id:
     description: ID de l'instance
     value: { get_resource: mon_instance }
