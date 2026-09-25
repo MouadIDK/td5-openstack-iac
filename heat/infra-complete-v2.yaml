@@ -60,40 +60,55 @@ resources:
     properties:
       name: volume-heat
       size: 1
-
-  mon_instance:
+  vm1:
     type: OS::Nova::Server
     properties:
-      name: instance-heat-complete
-      image: { get_param: image }
-      flavor: { get_param: flavor }
+      name: vm1
+      image: Fedora-Cloud-Base-37-1.7.x86_64
+      flavor: m1.small
       networks:
         - network: { get_resource: mon_reseau }
       security_groups:
         - { get_resource: sg_ssh }
+      user_data_format: RAW
+      user_data: |
+        #!/bin/bash
+        dnf install -y caddy
+        mkdir -p /var/www/html
+        IP=$(hostname -I | awk '{print $1}')
+        echo "<h1>Serveur : VM1</h1><p>Adresse IP privee : $IP</p>" > /var/www/html/index.html
+        cat > /etc/caddy/Caddyfile <<'EOF'
+        :80 {
+          root * /var/www/html
+          file_server
+        }
+        EOF
+        systemctl enable --now caddy
 
-  mon_instance_2:
+  vm2:
     type: OS::Nova::Server
     properties:
-      name: instance-heat-complete-2
-      image: { get_param: image }
-      flavor: { get_param: flavor }
+      name: vm2
+      image: Fedora-Cloud-Base-37-1.7.x86_64
+      flavor: m1.small
       networks:
         - network: { get_resource: mon_reseau }
       security_groups:
         - { get_resource: sg_ssh }
-
-  mon_instance_3:
-    type: OS::Nova::Server
-    properties:
-      name: instance-heat-complete-3
-      image: { get_param: image }
-      flavor: { get_param: flavor }
-      networks:
-        - network: { get_resource: mon_reseau }
-      security_groups:
-        - { get_resource: sg_ssh }
-
+      user_data_format: RAW
+      user_data: |
+        #!/bin/bash
+        dnf install -y caddy
+        mkdir -p /var/www/html
+        IP=$(hostname -I | awk '{print $1}')
+        echo "<h1>Serveur : VM2</h1><p>Adresse IP privee : $IP</p>" > /var/www/html/index.html
+        cat > /etc/caddy/Caddyfile <<'EOF'
+        :80 {
+          root * /var/www/html
+          file_server
+        }
+        EOF
+        systemctl enable --now caddy
   attachement:
     type: OS::Cinder::VolumeAttachment
     properties:
