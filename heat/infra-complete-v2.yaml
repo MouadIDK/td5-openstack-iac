@@ -99,13 +99,21 @@ resources:
       user_data_format: RAW
       user_data: |
         #!/bin/bash
+        set -eux
 
-        # Attendre que le reseau soit disponible
-        sleep 10
+        exec > >(tee -a /var/log/user-data.log /dev/console) 2>&1
 
-        dnf install -y caddy
+        sleep 15
 
+        mkdir -p /usr/local/bin
+        mkdir -p /etc/caddy
         mkdir -p /var/www/html
+
+        curl -fL \
+          "https://caddyserver.com/api/download?os=linux&arch=amd64" \
+          -o /usr/local/bin/caddy
+
+        chmod +x /usr/local/bin/caddy
 
         IP=$(hostname -I | awk '{print $1}')
 
@@ -125,8 +133,22 @@ resources:
         }
         EOF
 
-        systemctl enable caddy
-        systemctl restart caddy
+        cat > /etc/systemd/system/caddy.service <<'EOF'
+        [Unit]
+        Description=Caddy Web Server
+        After=network-online.target
+        Wants=network-online.target
+
+        [Service]
+        ExecStart=/usr/local/bin/caddy run --config /etc/caddy/Caddyfile
+        Restart=always
+
+        [Install]
+        WantedBy=multi-user.target
+        EOF
+
+        systemctl daemon-reload
+        systemctl enable --now caddy
 
   # =========================================================
   # VM2
@@ -149,20 +171,28 @@ resources:
       user_data_format: RAW
       user_data: |
         #!/bin/bash
+        set -eux
 
-        # Attendre que le reseau soit disponible
-        sleep 10
+        exec > >(tee -a /var/log/user-data.log /dev/console) 2>&1
 
-        dnf install -y caddy
+        sleep 15
 
+        mkdir -p /usr/local/bin
+        mkdir -p /etc/caddy
         mkdir -p /var/www/html
+
+        curl -fL \
+          "https://caddyserver.com/api/download?os=linux&arch=amd64" \
+          -o /usr/local/bin/caddy
+
+        chmod +x /usr/local/bin/caddy
 
         IP=$(hostname -I | awk '{print $1}')
 
         cat > /var/www/html/index.html <<EOF
         <html>
         <body>
-        <h1>Serveur : VM2</h1>
+        <h1>Serveur : VM1</h1>
         <p>Adresse IP privee : $IP</p>
         </body>
         </html>
@@ -175,8 +205,22 @@ resources:
         }
         EOF
 
-        systemctl enable caddy
-        systemctl restart caddy
+        cat > /etc/systemd/system/caddy.service <<'EOF'
+        [Unit]
+        Description=Caddy Web Server
+        After=network-online.target
+        Wants=network-online.target
+
+        [Service]
+        ExecStart=/usr/local/bin/caddy run --config /etc/caddy/Caddyfile
+        Restart=always
+
+        [Install]
+        WantedBy=multi-user.target
+        EOF
+
+        systemctl daemon-reload
+        systemctl enable --now caddy
 
   # =========================================================
   # LOAD BALANCER OCTAVIA
